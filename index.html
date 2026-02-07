@@ -8,27 +8,22 @@
         :root { --gold: #f5c542; --bg: #000; --green: #00ff88; }
         body { margin:0; background:var(--bg); color:#fff; font-family: sans-serif; overflow:hidden; touch-action: manipulation; }
         
-        /* Navigation & Header */
-        #backBtn { position:fixed; top:10px; left:10px; z-index:999; padding:10px 15px; background:rgba(255,255,255,0.2); border:none; color:white; border-radius:8px; cursor:pointer; }
+        #backBtn { position:fixed; top:10px; left:10px; z-index:999; padding:10px 15px; background:rgba(255,255,255,0.3); border:1px solid #666; color:white; border-radius:8px; cursor:pointer; font-weight:bold; }
         #score { position:absolute; top:10px; right:10px; color:var(--gold); font-size: 20px; font-weight: bold; }
         
-        /* Screen Containers */
         .screen { display:none; position:absolute; inset:0; justify-content:center; align-items:center; flex-direction:column; text-align:center; padding: 20px; }
         #home { display:flex; }
 
-        /* Tuner Specifics */
         .tuner-note { font-size:70px; font-weight: bold; margin: 10px 0; color: #fff; }
         .string-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 350px; margin: 20px 0; }
-        .string-buttons button { padding: 15px 5px; font-size: 18px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #222; color: white; cursor: pointer; }
-        .string-buttons button:active { background: var(--gold); color: black; }
+        .string-buttons button { padding: 15px 5px; font-size: 18px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #222; color: white; }
+        
         #tunerNeedle { width: 6px; height: 80px; background: red; border-radius: 3px; margin-top: 20px; transition: transform 0.1s ease-out; }
 
-        /* Game Specifics */
         #hitLine { position:absolute; left:30%; top:0; width:4px; height:100%; background:var(--gold); box-shadow: 0 0 15px var(--gold); }
         .note { position:absolute; white-space:nowrap; font-size:20px; font-weight: bold; }
 
-        /* General Buttons */
-        .primary-btn { background: var(--gold); color: #000; font-weight: bold; padding: 15px 25px; border-radius: 10px; border: none; font-size: 18px; margin: 10px; cursor: pointer; }
+        .primary-btn { background: var(--gold); color: #000; font-weight: bold; padding: 15px 25px; border-radius: 10px; border: none; font-size: 18px; margin: 10px; cursor: pointer; width: 220px; }
     </style>
 </head>
 <body>
@@ -36,16 +31,16 @@
 <button id="backBtn" onclick="goHome()" style="display:none;">⬅ Back</button>
 
 <div id="home" class="screen">
-    <h1 style="color:var(--gold)">🎸 Guitar Tool</h1>
+    <h1 style="color:var(--gold)">🎸 Guitar Hero Tool</h1>
     <button class="primary-btn" onclick="initAudio('tuner')">🎵 Open Tuner</button>
     <button class="primary-btn" onclick="initAudio('song', 'creep')">🎶 Play Creep</button>
-    <p id="micStatus" style="font-size:12px; color:#666;">Waiting for tap...</p>
+    <button class="primary-btn" onclick="initAudio('song', 'test')">🎼 Play Test Song</button>
+    <p id="micStatus" style="font-size:12px; color:#666;">Tap a button to start</p>
 </div>
 
 <div id="tuner" class="screen">
     <h2 style="margin:0; font-size:18px; color:var(--gold);">GUITAR TUNER</h2>
     <div class="tuner-note" id="tunerDisplay">E</div>
-    
     <div class="string-buttons">
         <button onclick="setString('E')">E</button>
         <button onclick="setString('A')">A</button>
@@ -54,9 +49,7 @@
         <button onclick="setString('B')">B</button>
         <button onclick="setString('e')">e</button>
     </div>
-
     <div id="tunerNeedle"></div>
-    <p style="font-size:12px; color:#888; margin-top:15px;">Pluck string near mic</p>
 </div>
 
 <div id="song" class="screen">
@@ -67,7 +60,7 @@
 <script>
 let audioCtx, analyser, mic, stream;
 const stringFreqs = { E:82.41, A:110.00, D:146.83, G:196.00, B:246.94, e:329.63 };
-const chordRoots = { G:196, B:247, C:262, Cm:262, F:349, Am:220 };
+const chordRoots = { G:196, B:247, C:262, Cm:262, F:349.23, Am:220 };
 let currentString = 'E';
 
 async function initAudio(targetScreen, songName) {
@@ -81,12 +74,11 @@ async function initAudio(targetScreen, songName) {
             mic.connect(analyser);
         }
         if (audioCtx.state === 'suspended') await audioCtx.resume();
-        
         document.getElementById('micStatus').innerText = "✅ Mic Active";
         if (targetScreen === 'tuner') startTuner();
         if (targetScreen === 'song') startSong(songName);
     } catch (e) {
-        alert("Please enable microphone access in Safari settings.");
+        alert("Microphone error. Ensure you are on HTTPS.");
     }
 }
 
@@ -96,7 +88,7 @@ function getPitch() {
     analyser.getFloatTimeDomainData(buf);
     let sum = 0;
     for (let i=0; i<buf.length; i++) sum += buf[i]*buf[i];
-    if (Math.sqrt(sum/buf.length) < 0.035) return null; // Sensitivity threshold
+    if (Math.sqrt(sum/buf.length) < 0.035) return null;
     let crossings = 0;
     for (let i=1; i<buf.length; i++) if (buf[i-1] < 0 && buf[i] >= 0) crossings++;
     return crossings * audioCtx.sampleRate / buf.length / 2;
@@ -110,10 +102,7 @@ function show(id) {
 
 function goHome() { location.reload(); }
 
-function setString(str) { 
-    currentString = str; 
-    document.getElementById('tunerDisplay').innerText = str; 
-}
+function setString(str) { currentString = str; document.getElementById('tunerDisplay').innerText = str; }
 
 function startTuner() { show('tuner'); requestAnimationFrame(tunerLoop); }
 
@@ -131,45 +120,59 @@ function tunerLoop() {
     requestAnimationFrame(tunerLoop);
 }
 
-// Simple Game Logic
-let songNotes = [], songStart = null, score = 0;
-const songData = {
-    creep: [{time:2, chord:"G", lyric:"When you were here before"}, {time:6, chord:"B", lyric:"Couldn't look you in the eyes"}],
-    test: [{time:2, chord:"C", lyric:"Test Note 1"}]
+// RESTORED SONG DATA
+const songs = {
+  creep:[
+    {time:1,chord:"G",lyric:"When you were here before"},
+    {time:4,chord:"B",lyric:"Couldn't look you in the eyes"},
+    {time:7,chord:"C",lyric:"You're just like an angel"},
+    {time:10,chord:"Cm",lyric:"Your skin makes me cry"}
+  ],
+  test:[
+    {time:1,chord:"C",lyric:"This is a test line 1"},
+    {time:3,chord:"F",lyric:"Test line 2 goes here"},
+    {time:5,chord:"G",lyric:"Test line 3 placeholder"},
+    {time:7,chord:"Am",lyric:"Last test line"}
+  ]
 };
 
-function startSong(name) {
-    show('song');
-    songNotes = songData[name].map(n => {
-        const el = document.createElement('div');
-        el.className = 'note';
-        el.innerHTML = `<div style="color:var(--gold)">${n.chord}</div><div style="font-size:12px">${n.lyric}</div>`;
-        document.getElementById('song').appendChild(el);
-        return { ...n, el, hit: false };
-    });
-    requestAnimationFrame(songLoop);
+let songNotes = [], songStart = null, songScore = 0;
+
+function startSong(songName){
+  show('song'); songScore=0; document.getElementById('score').innerText='Score: 0';
+  songStart=null;
+  songNotes.forEach(n=> { if(n.el) n.el.remove(); });
+  songNotes=[];
+  songs[songName].forEach(n=>{
+    const el=document.createElement('div'); el.className='note';
+    el.innerHTML=`<b>${n.chord}</b> – ${n.lyric}`;
+    el.style.top=(40+Math.random()*20)+'%';
+    document.getElementById('song').appendChild(el);
+    songNotes.push({...n,el,hit:false});
+  });
+  requestAnimationFrame(songLoop);
 }
 
-function songLoop(ts) {
-    if (document.getElementById('song').style.display !== 'flex') return;
-    if (!songStart) songStart = ts;
-    const elapsed = (ts - songStart) / 1000;
-    const pitch = getPitch();
-    const hitLineX = window.innerWidth * 0.3;
+function songLoop(ts){
+  if(document.getElementById('song').style.display!=='flex') return;
+  if(songStart===null) songStart=ts;
+  const t=(ts-songStart)/1000;
+  const pitch=getPitch();
+  const hitX=window.innerWidth*0.3;
 
-    songNotes.forEach(n => {
-        const x = hitLineX + (n.time - elapsed) * 150;
-        n.el.style.left = x + 'px';
-        n.el.style.top = '40%';
-        if (!n.hit && Math.abs(x - hitLineX) < 20 && pitch) {
-            if (Math.abs(pitch - chordRoots[n.chord]) < 15) {
-                n.hit = true; score += 100;
-                n.el.style.color = 'var(--green)';
-                document.getElementById('score').innerText = `Score: ${score}`;
-            }
-        }
-    });
-    requestAnimationFrame(songLoop);
+  songNotes.forEach(n=>{
+    const x=hitX+(n.time-t)*120;
+    n.el.style.left=x+'px';
+    if(!n.hit && Math.abs(x-hitX)<18 && pitch){
+      const target=chordRoots[n.chord];
+      if(target && Math.abs(pitch-target)<18){
+        n.hit=true; songScore+=100; n.el.style.color='#00ff88';
+        document.getElementById('score').innerText='Score: '+songScore;
+      }
+    }
+    if(x<-300) n.el.remove();
+  });
+  requestAnimationFrame(songLoop);
 }
 </script>
 </body>
